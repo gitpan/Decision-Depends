@@ -27,7 +27,7 @@ action
 test_dep
 );
 
-our $VERSION = '0.11';
+our $VERSION = '0.15';
 
 use Carp;
 use Decision::Depends::OO;
@@ -39,6 +39,8 @@ sub if_dep(&@)
   my ( $deps, $run ) = @_;
   my @args = &$deps;
 
+  local $Carp::CarpLevel = $Carp::CarpLevel + 1;
+
   $self->if_dep( \@args, $run );
 }
 
@@ -46,11 +48,15 @@ sub action(&) { $_[0] }
 
 sub test_dep
 {
+  local $Carp::CarpLevel = $Carp::CarpLevel + 1;
+
   $self->test_dep( @_ );
 }
 
 sub Configure
 {
+  local $Carp::CarpLevel = $Carp::CarpLevel + 1;
+
   $self->configure( @_ );
 }
 
@@ -185,6 +191,16 @@ the value C<foo>.  If no value is specified, a default value of C<1>
 is assigned.  Most attributes are boolean, so no value need be assigned
 them.
 
+Hash references may be used to pair attribute values with ordinary
+values.  For example, the following
+
+	-var => { $attr1 => $val1, $attr2 => $val2 }
+
+assigns C<$val1> the attribute C<-var> with the value C<$attr1>,
+C<$val2> the attribute C<-var> with the value C<$attr2>, etc.  This is
+most useful when specifying variable dependencies (see L<Dependencies>).
+
+
 =head2 Targets
 
 Targets are identified either by having the C<-target> or C<-targets>
@@ -234,6 +250,14 @@ for the final step.
 The target status file will be automatically created upon successful
 completion of the step.
 
+=item C<-force>
+
+If set to non-zero (the default if no value is specified), this will
+force the target to always be out-of-date.  This can be used to
+override a global forcing of out-of-dateness (done via the
+B<Depend::Configure> function) by setting it to zero.  It is probably
+most useful for targets which have no dependencies.
+
 =back
 
 
@@ -274,13 +298,44 @@ the last time the target was created. If the contents have changed,
 the step must be redone.  The new value is recorded upon successful
 completion of the step.
 
-Variable specification is a bit strange; the name of the variable
-is provided as if it were another attribute:
+There are several methods of specifying the variable name and value.
+
+=over 8
+
+=item *
+
+The B<-var> attribute may be assigned the name of the variable:
+
+	'-var=var_name' => $var_value
+
+This leads to fairly crufty looking code:
+
+	'-var=var1_name' => $var1_value,
+	'-var=var2_name' => $var2_value
+
+So the use of a hash reference to pair the variable names and values
+comes in handy:
+
+	-var => { var1_name => $var1_value,
+	          var2_name => $var2_value }
+
+This allows the nice short hand of
+
+	-var => \%variables
+
+With this method, you cannot have a variable named C<1>, which
+shouldn't be too limiting.
+
+=item *
+
+The variable name can be provided as if it were another attribute:
 
 	-var => -var_name => $var_value
 
-Variables cannot have the same name as any of the reserved names for
-attributes.
+With this method variables cannot have the same name as any of the
+reserved names for attributes.
+
+=back
 
 Variable dependencies may have the following additional attributes:
 
@@ -467,7 +522,8 @@ The available attributes are
 =item File
 
 The name of a file which contains (or will contain) dependency
-information.
+information.  In general this should be an absolute path, unless
+the directory will not be changed.
 
 =item Force
 
