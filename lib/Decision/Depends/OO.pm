@@ -1,3 +1,24 @@
+# --8<--8<--8<--8<--
+#
+# Copyright (C) 2008 Smithsonian Astrophysical Observatory
+#
+# This file is part of Decision::Depends
+#
+# Decision-Depends is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# -->8-->8-->8-->8--
+
 package Decision::Depends::OO;
 
 require 5.005_62;
@@ -6,14 +27,18 @@ use warnings;
 
 require Exporter;
 
-our $VERSION = '0.04';
+## no critic ( ProhibitAccessOfPrivateData )
+
+our $VERSION = '0.18';
 
 use Carp;
+use Scalar::Util qw( reftype );
+use Tie::IxHash;
+
 use Decision::Depends::State;
 use Decision::Depends::List;
 use Decision::Depends::Target;
 
-use Tie::IxHash;
 
 
 # regular expression for a floating point number
@@ -211,9 +236,18 @@ sub _build_spec_list
     }
 
     # a value
-    elsif ( 'SCALAR' eq $ref || ! $ref )
+    elsif ( 'SCALAR' eq $ref || 'REF' eq $ref || ! $ref )
     {
       $spec = $$spec if $ref;
+
+      $ref = ref $spec;
+
+      if ( $ref !~ /^(|ARRAY|HASH)$/ )
+      {
+        croak( __PACKAGE__, '::_build_spec_list:', 
+	     "value can only be scalar or ref to scalar, hashref or arrayref!\n" );
+      }
+
 
       $levels->[-1]++;
       my %attr;
@@ -290,13 +324,13 @@ sub _traverse_spec_list
 
       else
       {
-	my @match = grep { defined $spec->{attr}{$_} } qw( sig var ) ;
+	my @match = grep { defined $spec->{attr}{$_} } qw( sig var time ) ;
 
 	if ( @match > 1 )
 	{
 	  $Carp::CarpLevel--;
 	  croak( __PACKAGE__, 
-		 "::traverse_spec_list: too many classes for `$spec->{val}'" )
+		 "::traverse_spec_list: too many dependency classes for `$spec->{val}'" )
 	}
 
 	my $class = 'Decision::Depends::' .

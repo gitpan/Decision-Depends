@@ -1,3 +1,24 @@
+# --8<--8<--8<--8<--
+#
+# Copyright (C) 2008 Smithsonian Astrophysical Observatory
+#
+# This file is part of Decision::Depends
+#
+# Decision-Depends is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# -->8-->8-->8-->8--
+
 package Decision::Depends::Time;
 
 require 5.005_62;
@@ -6,7 +27,9 @@ use warnings;
 
 use Carp;
 
-our $VERSION = '0.01';
+## no critic ( ProhibitAccessOfPrivateData )
+
+our $VERSION = '0.18';
 
 our %attr = ( depend => 1,
 	      depends => 1,
@@ -23,6 +46,11 @@ sub new
 
   my $self = { %$spec, state => $state };
 
+
+  # only accept string values
+  croak( __PACKAGE__, 
+      "->new: bad type for Time dependency `$self->{val}': must be scalar" )
+    unless '' eq ref $self->{val};
 
   # ensure that no bogus attributes are set
   my @notok = grep { ! exists $attr{$_} } keys %{$self->{attr}};
