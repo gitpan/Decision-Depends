@@ -16,7 +16,8 @@ no_index:
     - inc
     - t
 requires:
+  Clone: 0
   Data::Compare: 0
   Tie::IxHash: 0
   YAML: 0
-version: 0.18
+version: 0.19
